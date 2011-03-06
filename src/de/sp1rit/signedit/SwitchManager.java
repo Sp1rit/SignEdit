@@ -1,10 +1,10 @@
 package de.sp1rit.signedit;
-
+/*
 import java.io.*;
 import java.util.logging.*;
 import java.util.Properties;
 
-import org.bukkit.block.Sign;
+import org.bukkit.block.Sign;*/
 
 public class SwitchManager {
 	/*

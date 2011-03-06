@@ -33,7 +33,7 @@ public class SignEditBlockListener extends BlockListener {
     public void onSignChange(SignChangeEvent event) {
     	if (event.isCancelled()) return;
     	
-		// rechteabfrage einbauen
+/*		// rechteabfrage einbauen
 		if (event.getLine(0).equalsIgnoreCase("[SESwitch]")) {
 			if (plugin.saveManager.saveExists(event.getLine(1))) {
 				String[] text = plugin.saveManager.loadText(event.getLine(1));
@@ -42,7 +42,7 @@ public class SignEditBlockListener extends BlockListener {
 				event.setLine(2, text[2]);
 				event.setLine(3, text[3]);
 			}
-		}
+		}*/
 		
 	    event.setLine(0, plugin.parseSignText(event.getLine(0), ""));
 	    event.setLine(1, plugin.parseSignText(event.getLine(1), ""));
@@ -50,9 +50,9 @@ public class SignEditBlockListener extends BlockListener {
 	    event.setLine(3, plugin.parseSignText(event.getLine(3), ""));
     }
     
-    public void onBlockRightClick(BlockRightClickEvent event) {
+/*    public void onBlockRightClick(BlockRightClickEvent event) {
     	if (event.getBlock().getState() instanceof Sign) {
     		plugin.saveManager.loadText("test1", (Sign)event.getBlock().getState());
     	}
-    }
+    }*/
 }

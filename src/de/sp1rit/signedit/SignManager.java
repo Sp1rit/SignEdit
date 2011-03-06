@@ -15,8 +15,9 @@ public class SignManager {
 	private Properties signToId = new Properties();
     private Properties idToSign = new Properties();
     
-        public SignManager(SignEdit instance){
+        public SignManager(SignEdit instance) {
         	plugin = instance;
+        	convertOldSigns();
             try {
             	File signEditFolder = new File(plugin.getDataFolder().getPath());
             	if (!signEditFolder.isDirectory())
@@ -65,6 +66,43 @@ public class SignManager {
         	} catch(IOException e) {
         		logger.log(Level.SEVERE, null, e);
         	}
+        }
+        
+        private void convertOldSigns() {
+            try {
+            	File signEditFolder = new File(plugin.getDataFolder().getPath());
+            	if (signEditFolder.isDirectory()) {
+	        		File oldSignsFile = new File(plugin.getDataFolder().getPath(), "signs.txt");
+	        		if (oldSignsFile.exists()) {		
+		                BufferedReader in = new BufferedReader(new FileReader(oldSignsFile));
+		
+		                String line;
+		                while( (line=in.readLine() ) != null ) {
+		
+		                    String lineTrim = line.trim();
+		
+		                    if( lineTrim.startsWith( "#" ) ) {
+		                        continue;
+		                    }
+		
+		                    String[] split = lineTrim.split("=");
+		                    
+		                    split[0] = split[0] + ";" + plugin.getServer().getWorlds().get(0).getName();
+		
+		                    signToId.put(split[0], split[1]);
+		                    idToSign.put(split[1], split[0]);
+		                }
+		                in.close();
+		                save();
+		                oldSignsFile.deleteOnExit();
+		                
+		                signToId.clear();
+		                idToSign.clear();
+	        		}
+            	}
+            } catch(IOException e) {
+                logger.log(Level.SEVERE, null, e);
+            }
         }
         
 	    /**
@@ -252,13 +290,13 @@ public class SignManager {
          * @param signId
          * @return
          */
-        public Sign getSign(Player player, String signId) {
+        public Sign getSign(String signId) {
             if (signExists(signId)) {
                 String[] signLocation = idToSign.getProperty(signId).split(";");
-                if (signLocation.length == 3) {
+                if (signLocation.length == 4) {
                 	World world = plugin.getServer().getWorld(signLocation[3]);
                 	if (world != null) {
-	                	Block block = plugin.getServer().getWorld("").getBlockAt(Integer.valueOf(signLocation[0]), Integer.valueOf(signLocation[1]), Integer.valueOf(signLocation[2]));
+	                	Block block = plugin.getServer().getWorld(world.getName()).getBlockAt(Integer.valueOf(signLocation[0]), Integer.valueOf(signLocation[1]), Integer.valueOf(signLocation[2]));
 	                    if (block.getState() instanceof Sign) {
 	                        return (Sign)block.getState();
 	                    } else {

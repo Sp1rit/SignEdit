@@ -13,8 +13,13 @@ public final class Language {
 	public static final String SAVED_TEXT_REMOVED	 = ChatColor.GREEN + "SignEdit: Saved-Text successfully removed.";
 	public static final String SIGN_TEXT_LOADED		 = ChatColor.GREEN + "SignEdit: Sign-Text successfully loaded.";
 	
-	public static final String ERROR_ADD_ONLY_PLAYER  = ChatColor.RED + "SignEdit: A sign can only be registered by players.";
-	public static final String ERROR_EDIT_ONLY_PLAYER = ChatColor.RED + "SignEdit: As non-player you have to specify a sign-name.";
+	public static final String ERROR_ADD_ONLY_PLAYER	= ChatColor.RED + "SignEdit: A sign can only be registered by players.";
+	public static final String ERROR_EDIT_ONLY_PLAYER	= ChatColor.RED + "SignEdit: As non-player you have to specify a sign-name.";
+	public static final String ERROR_REMOVE_ONLY_PLAYER = ChatColor.RED + "SignEdit: As non-player you have to specify a sign-name.";
+	public static final String ERROR_CLEAR_ONLY_PLAYER	= ChatColor.RED + "SignEdit: As non-player you have to specify a sign-name.";
+	public static final String ERROR_SET_ONLY_PLAYER	= ChatColor.RED + "SignEdit: As non-player you have to use setid.";
+	public static final String ERROR_SAVE_ONLY_PLAYER	= ChatColor.RED + "SignEdit: As non-player you have to specify a sign-name.";
+	public static final String ERROR_LOAD_ONLY_PLAYER	= ChatColor.RED + "SignEdit: As non-player you have to specify a sign-name.";
 	
 	public static final String ERROR_ID_ALREADY_REGISTERED = ChatColor.RED + "SignEdit: The sign ID is already registered.";
 	public static final String ERROR_LOOK_AT_SIGN          = ChatColor.RED + "SignEdit: No sign in sight.";

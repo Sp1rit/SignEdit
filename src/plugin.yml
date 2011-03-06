@@ -1,23 +1,18 @@
 name: SignEdit
 main: de.sp1rit.signedit.SignEdit
-version: 1.4
-website: http://www.sp1rit.de
+version: 1.4.1
+website: http://redmine.sp1rit.de
 author: Sp1rit
 description: >
              Remote-edit signs with Colors!
 commands:
   se:
-    description: Clears your own or a player's inventory.
+    description: Control all SignEdit features with one command.
     usage: |
            /<command>
-           Example: /<command> - clears your own inventory.
-           Example: /<command> Bukkit - clears Bukkit's inventory.
+           Example: /<command> - Shows the SignEdit-help.
   signedit:
-    description: Gives yourself or someone else items. Supports item IDs or names.
+    description: Control all SignEdit features with one command.
     usage: |
-           /<command> item[:data] [amount] [player]
-           Example: /<command> 2 - gives you 1 grass.
-           Example: /<command> 2 20 - gives you 20 grass.
-           Example: /<command> 2 -1 - gives you unlimited grass.
-           Example: /<command> 2 64 Bukkit - gives a player named Bukkit 64 grass.
-           Example: /<command> 35:12 200 - gives you 200 brown wool.
+           /<command>
+           Example: /<command> - Shows the SignEdit-help.

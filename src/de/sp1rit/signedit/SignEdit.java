@@ -16,6 +16,7 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginManager;
 
 import org.anjocaido.groupmanager.GroupManager;
+
 import com.nijikokun.bukkit.Permissions.Permissions;
 
 public class SignEdit extends JavaPlugin {
@@ -28,7 +29,7 @@ public class SignEdit extends JavaPlugin {
 		SignEditBlockListener blockListener = new SignEditBlockListener(this);
 		PluginManager pm = getServer().getPluginManager();
 		pm.registerEvent(Event.Type.BLOCK_BREAK, blockListener, Priority.Normal, this);
-		pm.registerEvent(Event.Type.BLOCK_RIGHTCLICKED, blockListener, Priority.Normal, this);
+		//pm.registerEvent(Event.Type.BLOCK_RIGHTCLICKED, blockListener, Priority.Normal, this);
 		pm.registerEvent(Event.Type.SIGN_CHANGE, blockListener, Priority.Normal, this);
 		
 		signManager = new SignManager(this);
@@ -46,9 +47,9 @@ public class SignEdit extends JavaPlugin {
 	public boolean onCommand(CommandSender sender, Command command, String commandLabel, String[] args) {
 		String commandName = command.getName().toLowerCase();
         
-        if (commandName.equalsIgnoreCase("se") || commandName.equalsIgnoreCase("signedit")) {
+        if (commandName.equals("se") || commandName.equals("signedit")) {
         	if (args.length > 0) {
-	        	if (args[0].equalsIgnoreCase("add")) {
+	        	if (args[0].equals("add")) {
 	        		add(sender, args);
 	        	} else if (args[0].equalsIgnoreCase("edit")) {
 	        		edit(sender, args);
@@ -66,14 +67,18 @@ public class SignEdit extends JavaPlugin {
 	        		rsave(sender, args);
 	        	} else if (args[0].equalsIgnoreCase("load")) {
 	        		load(sender, args);
+	            } else {
+	            	showHelp(sender);
 	            }
+        	} else {
+        		showHelp(sender);
         	}
-    		showHelp(sender);
-    		return true;
+        	return true;
         }
 		return false;
 	}
 	
+	// TODO Hilfe aktualisieren evtl zweiseitig
     public void showHelp(CommandSender sender) {
     	sender.sendMessage(ChatColor.DARK_GREEN + " SignEdit Help: <> = needed; [] = optional;          ");
     	sender.sendMessage(ChatColor.BLUE       + "-----------------------------------------------------");
@@ -95,7 +100,7 @@ public class SignEdit extends JavaPlugin {
                 getServer().getPluginManager().enablePlugin(g);
             }
             GroupManager gm = (GroupManager) g;
-            rights.permissions = gm.getPermissionHandler();
+            rights.worldsHolder = gm.getWorldsHolder();
         } else if (p!= null) {
     		if (!p.isEnabled()) {
     			getServer().getPluginManager().enablePlugin(p);
@@ -104,6 +109,7 @@ public class SignEdit extends JavaPlugin {
     	}
 	}
 	
+	// TODO Farbenrechte einbauen. Möglichst einzelnt.
     /**
      * Replace codes with colors etc.
      * @param line
@@ -196,12 +202,12 @@ public class SignEdit extends JavaPlugin {
     		}
     	} else if (args.length == 3) {
     		String signId = args[1];
-    		Sign sign = signManager.getSign(player, signId);
+    		Sign sign = signManager.getSign(signId);
     		if (sign != null) {
     			if (signManager.signExists(sign)) {
     				String newId = args[2];
     				if (!signManager.signExists(newId)) {
-    					if (rights.canEditId(player, sign.getBlock())) {
+    					if (rights.canEditId(sender, sign.getBlock())) {
 	    					if (signManager.editSign(sign, newId)) {
 	    						sender.sendMessage(Language.SIGN_ID_EDITED);
 	    					} else {
@@ -231,30 +237,34 @@ public class SignEdit extends JavaPlugin {
      * @param split
      * @return
      */
-    public void remove(CommandSender sender, String[] split) {
-    	if (split.length == 2) {
-    		Sign sign = signManager.getTargetSign(player);
-    		if (sign != null) {
-    			if (signManager.signExists(sign)) {
-    				if (rights.canRemoveId(player, sign.getBlock())) {
-	    				if (signManager.removeSign(sign)) {
-	    					sender.sendMessage(Language.SIGN_ID_REMOVED);
-	    				} else {
-	    					sender.sendMessage(Language.ERROR_ID_REMOVE);
+    public void remove(CommandSender sender, String[] args) {
+    	if (args.length == 1) {
+    		if (sender instanceof Player) {
+	    		Sign sign = signManager.getTargetSign((Player)sender);
+	    		if (sign != null) {
+	    			if (signManager.signExists(sign)) {
+	    				if (rights.canRemoveId(sender, sign.getBlock())) {
+		    				if (signManager.removeSign(sign)) {
+		    					sender.sendMessage(Language.SIGN_ID_REMOVED);
+		    				} else {
+		    					sender.sendMessage(Language.ERROR_ID_REMOVE);
+		    				}
 	    				}
-    				}
-    			} else {
-    				sender.sendMessage(Language.ERROR_SIGN_NO_ID);
-    			}
+	    			} else {
+	    				sender.sendMessage(Language.ERROR_SIGN_NO_ID);
+	    			}
+	    		} else {
+	    			sender.sendMessage(Language.ERROR_LOOK_AT_SIGN);
+	    		}
     		} else {
-    			sender.sendMessage(Language.ERROR_LOOK_AT_SIGN);
-    		}
-    	} else if (split.length == 3) {
-    		String signId = split[2];
-    		Sign sign = signManager.getSign(player, signId);
+        		sender.sendMessage(Language.ERROR_REMOVE_ONLY_PLAYER);
+        	}
+    	} else if (args.length == 2) {
+    		String signId = args[1];
+    		Sign sign = signManager.getSign(signId);
     		if (sign != null) {
     			if (signManager.signExists(sign)) {
-    				if (rights.canRemoveId(player, sign.getBlock())) {
+    				if (rights.canRemoveId(sender, sign.getBlock())) {
 	    				if (signManager.removeSign(sign)) {
 	    					sender.sendMessage(Language.SIGN_ID_REMOVED);
 	    				} else {
@@ -280,26 +290,30 @@ public class SignEdit extends JavaPlugin {
      * @param split
      * @return
      */
-    public void clear(CommandSender sender, String[] split) {
-    	if (split.length == 2) {
-    		Sign sign = signManager.getTargetSign(player);
-    		if (sign != null) {
-    			if (rights.canEditSignText(player, sign.getBlock())) {
-	    			sign.setLine(0, "");
-	    			sign.setLine(1, "");
-	    			sign.setLine(2, "");
-	    			sign.setLine(3, "");
-	    			sign.update();
-	    			sender.sendMessage(Language.SIGN_TEXT_REMOVED);
-    			}
+    public void clear(CommandSender sender, String[] args) {
+    	if (args.length == 1) {
+    		if (sender instanceof Player) {
+	    		Sign sign = signManager.getTargetSign((Player)sender);
+	    		if (sign != null) {
+	    			if (rights.canEditSignText(sender, sign.getBlock())) {
+		    			sign.setLine(0, "");
+		    			sign.setLine(1, "");
+		    			sign.setLine(2, "");
+		    			sign.setLine(3, "");
+		    			sign.update();
+		    			sender.sendMessage(Language.SIGN_TEXT_REMOVED);
+	    			}
+	    		} else {
+	    			sender.sendMessage(Language.ERROR_LOOK_AT_SIGN);
+	    		}
     		} else {
-    			sender.sendMessage(Language.ERROR_LOOK_AT_SIGN);
-    		}
-    	} else if (split.length == 3) {
-    		String signId = split[2];
-    		Sign sign = signManager.getSign(player, signId);
+        		sender.sendMessage(Language.ERROR_CLEAR_ONLY_PLAYER);
+        	}
+    	} else if (args.length == 2) {
+    		String signId = args[1];
+    		Sign sign = signManager.getSign(signId);
     		if (sign != null) {
-    			if (rights.canEditSignText(player, sign.getBlock())) {
+    			if (rights.canEditSignText(sender, sign.getBlock())) {
 	    			sign.setLine(0, "");
 	    			sign.setLine(1, "");
 	    			sign.setLine(2, "");
@@ -317,62 +331,66 @@ public class SignEdit extends JavaPlugin {
     	}
     }
     
-    public void set(CommandSender sender, String[] split) {
-        if (split.length > 2) {
-            Sign sign = signManager.getTargetSign(player);
-            if (sign != null) {
-            	if (rights.canEditSignText(player, sign.getBlock())) {
-	                String line, signText = "";
-	                for(int i=2;i<split.length;i++)
-	                    signText += " " + split[i];
-	                Pattern p = Pattern.compile("[1-4]?\"[^\"]*\"");
-	                Matcher m = p.matcher(signText);
-	                for(int i=0;i<4;i++) {
-	                     if (m.find()) {
-	                        line = signText.substring(m.start(),m.end());
-	                        if (line.startsWith("1")) {
-	                            sign.setLine(0, parseSignText(line.substring(line.indexOf("\"") + 1, line.lastIndexOf("\"")), sign.getLine(0)));
-	                        } else if (line.startsWith("2")) {
-	                            sign.setLine(1, parseSignText(line.substring(line.indexOf("\"") + 1, line.lastIndexOf("\"")), sign.getLine(1)));
-	                        } else if (line.startsWith("3")) {
-	                            sign.setLine(2, parseSignText(line.substring(line.indexOf("\"") + 1, line.lastIndexOf("\"")), sign.getLine(2)));
-	                        } else if (line.startsWith("4")) {
-	                            sign.setLine(3, parseSignText(line.substring(line.indexOf("\"") + 1, line.lastIndexOf("\"")), sign.getLine(3)));
-	                        } else {
-	                            sign.setLine(i, parseSignText(line.substring(line.indexOf("\"") + 1, line.lastIndexOf("\"")), sign.getLine(i)));
-	                        }
-	                    } else {
-	                         if (i == 0) {
-	                        	 sender.sendMessage(Language.ERROR_WRONG_FORMATTING);
-	                             sender.sendMessage(ChatColor.RED + "SignEdit: /se set \"Text 1\" \"Text 2\"...");
-	                             sender.sendMessage(ChatColor.RED + "SignEdit: /se set 2\"Text Zeile2\" 4\"Text Zeile4\"");
-	                             return;
-	                         }
-	                         break;
-	                    }
-	                }
-	                sign.update();
-	                sender.sendMessage(Language.SIGN_TEXT_SET);
-            	}
-            } else {
-            	sender.sendMessage(Language.ERROR_LOOK_AT_SIGN);
-            }
-        } else {
-        	sender.sendMessage(Language.ERROR_WRONG_PARAMETER);
-            sender.sendMessage(ChatColor.RED + "SignEdit: /se set <Text>");
-            sender.sendMessage(ChatColor.RED + "SignEdit: /se setid <Name/ID> <Text>");
-        }
+    public void set(CommandSender sender, String[] args) {
+    	if (sender instanceof Player) {
+    		if (args.length > 1) {
+	            Sign sign = signManager.getTargetSign((Player)sender);
+	            if (sign != null) {
+	            	if (rights.canEditSignText(sender, sign.getBlock())) {
+		                String line, signText = "";
+		                for(int i=1;i<args.length;i++)
+		                    signText += " " + args[i];
+		                Pattern p = Pattern.compile("[1-4]?\"[^\"]*\"");
+		                Matcher m = p.matcher(signText);
+		                for(int i=0;i<4;i++) {
+		                     if (m.find()) {
+		                        line = signText.substring(m.start(),m.end());
+		                        if (line.startsWith("1")) {
+		                            sign.setLine(0, parseSignText(line.substring(line.indexOf("\"") + 1, line.lastIndexOf("\"")), sign.getLine(0)));
+		                        } else if (line.startsWith("2")) {
+		                            sign.setLine(1, parseSignText(line.substring(line.indexOf("\"") + 1, line.lastIndexOf("\"")), sign.getLine(1)));
+		                        } else if (line.startsWith("3")) {
+		                            sign.setLine(2, parseSignText(line.substring(line.indexOf("\"") + 1, line.lastIndexOf("\"")), sign.getLine(2)));
+		                        } else if (line.startsWith("4")) {
+		                            sign.setLine(3, parseSignText(line.substring(line.indexOf("\"") + 1, line.lastIndexOf("\"")), sign.getLine(3)));
+		                        } else {
+		                            sign.setLine(i, parseSignText(line.substring(line.indexOf("\"") + 1, line.lastIndexOf("\"")), sign.getLine(i)));
+		                        }
+		                    } else {
+		                         if (i == 0) {
+		                        	 sender.sendMessage(Language.ERROR_WRONG_FORMATTING);
+		                             sender.sendMessage(ChatColor.RED + "SignEdit: /se set \"Text 1\" \"Text 2\"...");
+		                             sender.sendMessage(ChatColor.RED + "SignEdit: /se set 2\"Text Zeile2\" 4\"Text Zeile4\"");
+		                             return;
+		                         }
+		                         break;
+		                    }
+		                }
+		                sign.update();
+		                sender.sendMessage(Language.SIGN_TEXT_SET);
+	            	}
+	            } else {
+	            	sender.sendMessage(Language.ERROR_LOOK_AT_SIGN);
+	            }
+	        } else {
+	        	sender.sendMessage(Language.ERROR_WRONG_PARAMETER);
+	            sender.sendMessage(ChatColor.RED + "SignEdit: /se set <Text>");
+	            sender.sendMessage(ChatColor.RED + "SignEdit: /se setid <Name/ID> <Text>");
+	        }
+    	} else {
+    		sender.sendMessage(Language.ERROR_SET_ONLY_PLAYER);
+    	}
     }
 
-    public void setById(CommandSender sender, String[] split) {
-        if (split.length > 3) {
-            String signId = split[2];
-            Sign sign = signManager.getSign(player, signId);
+    public void setById(CommandSender sender, String[] args) {
+        if (args.length > 2) {
+            String signId = args[1];
+            Sign sign = signManager.getSign(signId);
             if (sign != null) {
-            	if (rights.canEditSignText(player, sign.getBlock())) {
+            	if (rights.canEditSignText(sender, sign.getBlock())) {
 	                String line, signText = "";
-	                for(int i=3;i<split.length;i++)
-	                    signText += " " + split[i];
+	                for(int i=2;i<args.length;i++)
+	                    signText += " " + args[i];
 	                Pattern p = Pattern.compile("[1-4]?\"[^\"]*\"");
 	                Matcher m = p.matcher(signText);
 	                for(int i=0;i<4;i++) {
@@ -411,32 +429,36 @@ public class SignEdit extends JavaPlugin {
         }
     }
     
-    public void save(CommandSender sender, String[] split) {
-    	if (split.length == 3) {
-            Sign sign = signManager.getTargetSign(player);
-            if (sign != null) {
-            	String saveId = split[2];
-            	if (!saveManager.saveExists(saveId)) {
-            		if (rights.canSaveText(player, sign.getBlock())) {
-	            		if (saveManager.saveText(saveId, sign.getLine(0), sign.getLine(1), sign.getLine(2), sign.getLine(3))) {
-	            			sender.sendMessage(Language.SIGN_TEXT_SAVED);
-    					} else {
-    						sender.sendMessage(Language.ERROR_SAVE_TEXT);
+    public void save(CommandSender sender, String[] args) {
+    	if (args.length == 2) {
+    		if (sender instanceof Player) {
+	            Sign sign = signManager.getTargetSign((Player)sender);
+	            if (sign != null) {
+	            	String saveId = args[1];
+	            	if (!saveManager.saveExists(saveId)) {
+	            		if (rights.canSaveText(sender, sign.getBlock())) {
+		            		if (saveManager.saveText(saveId, sign.getLine(0), sign.getLine(1), sign.getLine(2), sign.getLine(3))) {
+		            			sender.sendMessage(Language.SIGN_TEXT_SAVED);
+	    					} else {
+	    						sender.sendMessage(Language.ERROR_SAVE_TEXT);
+		            		}
 	            		}
-            		}
-            	} else {
-            		sender.sendMessage(Language.ERROR_SAVE_EXISTS);
-            	}
-            } else {
-            	sender.sendMessage(Language.ERROR_LOOK_AT_SIGN);
-            }
-    	} else if (split.length == 4) {
-            String signId = split[2];
-            Sign sign = signManager.getSign(player, signId);
+	            	} else {
+	            		sender.sendMessage(Language.ERROR_SAVE_EXISTS);
+	            	}
+	            } else {
+	            	sender.sendMessage(Language.ERROR_LOOK_AT_SIGN);
+	            }
+    		} else {
+    			sender.sendMessage(Language.ERROR_SAVE_ONLY_PLAYER);
+    		}
+    	} else if (args.length == 3) {
+            String signId = args[1];
+            Sign sign = signManager.getSign(signId);
             if (sign != null) {
-            	String saveId = split[3];
+            	String saveId = args[2];
             	if (!saveManager.saveExists(saveId)) {
-	            	if (rights.canSaveText(player, sign.getBlock())) {
+	            	if (rights.canSaveText(sender, sign.getBlock())) {
 	            		if (saveManager.saveText(saveId, sign.getLine(0), sign.getLine(1), sign.getLine(2), sign.getLine(3))) {
 	            			sender.sendMessage(Language.SIGN_TEXT_SAVED);
     					} else {
@@ -456,54 +478,58 @@ public class SignEdit extends JavaPlugin {
     	}
     }
     
-    public void rsave(CommandSender sender, String[] split) {
-    	if (split.length == 3) {
-            String saveId = split[2];
-            if (saveManager.saveExists(saveId)) {
-            	if (rights.canRemoveSavedText(player)) {
-	            	if (saveManager.removeText(saveId)) {
-	            		sender.sendMessage(Language.SAVED_TEXT_REMOVED);
+    public void rsave(CommandSender sender, String[] args) {
+    	if (args.length == 2) {
+    		String saveId = args[1];
+    		if (saveManager.saveExists(saveId)) {
+    			if (rights.canRemoveSavedText(sender)) {
+    				if (saveManager.removeText(saveId)) {
+    					sender.sendMessage(Language.SAVED_TEXT_REMOVED);
     				} else {
     					sender.sendMessage(Language.ERROR_SAVE_REMOVE);
-	            	}
-            	}
-            } else {
-            	sender.sendMessage(Language.ERROR_SIGN_HAS_ID);
-            	sender.sendMessage(Language.INFO_ID_EDIT);
-            }
+    				}
+    			}
+    		} else {
+    			sender.sendMessage(Language.ERROR_SIGN_HAS_ID);
+    			sender.sendMessage(Language.INFO_ID_EDIT);
+    		}
     	} else {
     		sender.sendMessage(Language.ERROR_WRONG_PARAMETER);
     		sender.sendMessage(ChatColor.RED + "SignEdit: /se rsave <SaveName>");
     	}
     }
     
-    public void load(CommandSender sender, String[] split) {
-    	if (split.length == 3) {
-            Sign sign = signManager.getTargetSign(player);
-            if (sign != null) {
-            	String saveId = split[2];
-            	if (saveManager.saveExists(saveId)) {
-            		if (rights.canLoadText(player, sign.getBlock()) & rights.canEditSignText(player, sign.getBlock())) {
-	            		if (saveManager.loadText(saveId, sign)) {
-	            			sender.sendMessage(Language.SIGN_TEXT_LOADED);
-    					} else {
-    						sender.sendMessage(Language.ERROR_SAVE_LOAD);
+    public void load(CommandSender sender, String[] args) {
+    	if (args.length == 2) {
+    		if (sender instanceof Player) {
+	            Sign sign = signManager.getTargetSign((Player)sender);
+	            if (sign != null) {
+	            	String saveId = args[1];
+	            	if (saveManager.saveExists(saveId)) {
+	            		if (rights.canLoadText(sender, sign.getBlock()) & rights.canEditSignText(sender, sign.getBlock())) {
+		            		if (saveManager.loadText(saveId, sign)) {
+		            			sender.sendMessage(Language.SIGN_TEXT_LOADED);
+	    					} else {
+	    						sender.sendMessage(Language.ERROR_SAVE_LOAD);
+		            		}
 	            		}
-            		}
-            	} else {
-            		sender.sendMessage(Language.ERROR_SIGN_HAS_ID);
-            		sender.sendMessage(Language.INFO_ID_EDIT);
-            	}
-            } else {
-            	sender.sendMessage(Language.ERROR_LOOK_AT_SIGN);
-            }
-    	} else if (split.length == 4) {
-            String signId = split[2];
-            Sign sign = signManager.getSign(player, signId);
+	            	} else {
+	            		sender.sendMessage(Language.ERROR_SIGN_HAS_ID);
+	            		sender.sendMessage(Language.INFO_ID_EDIT);
+	            	}
+	            } else {
+	            	sender.sendMessage(Language.ERROR_LOOK_AT_SIGN);
+	            }
+    		} else {
+    			sender.sendMessage(Language.ERROR_LOAD_ONLY_PLAYER);
+    		}
+    	} else if (args.length == 3) {
+            String signId = args[1];
+            Sign sign = signManager.getSign(signId);
             if (sign != null) {
-            	String saveId = split[3];
+            	String saveId = args[2];
             	if (saveManager.saveExists(saveId)) {
-	            	if (rights.canLoadText(player, sign.getBlock()) & rights.canEditSignText(player, sign.getBlock())) {
+	            	if (rights.canLoadText(sender, sign.getBlock()) & rights.canEditSignText(sender, sign.getBlock())) {
 	            		if (saveManager.loadText(saveId, sign)) {
 	            			sender.sendMessage(Language.SIGN_TEXT_LOADED);
     					} else {
