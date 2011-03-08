@@ -93,7 +93,8 @@ public class SignManager {
 		                    idToSign.put(split[1], split[0]);
 		                }
 		                in.close();
-		                save();
+		                if (signToId.size() > 0 && idToSign.size() > 0)
+		                	save();
 		                oldSignsFile.deleteOnExit();
 		                
 		                signToId.clear();
@@ -111,9 +112,7 @@ public class SignManager {
 	     * @return
 	     */
 	    public Sign getTargetSign(Player player) {
-	            TargetBlock targetBlock = new TargetBlock(player);
-	            
-	            Block block = targetBlock.getTargetBlock();
+	    		Block block = player.getTargetBlock(null, 300);
 	            if (block != null) {
 	                if (block.getState() instanceof Sign) {
 	                    return(Sign)block.getState();
